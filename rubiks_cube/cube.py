@@ -1,10 +1,20 @@
 import numpy as np
 import copy
+from PIL import Image
 
 # import torch - for later Tensor support
 
 INT_COLOR_MAP = {0: "w", 1: "r", 2: "g", 3: "b", 4: "y", 5: "o"}
 COLOR_INT_MAP = {v: k for k, v in INT_COLOR_MAP.items()}
+COLOR_RGB_MAP = {
+    'w': [255, 255, 255],
+    'r': [255, 0, 0],
+    'g': [0, 255, 0],
+    'b': [0, 0, 255],
+    'y': [255, 255, 0],
+    'o': [255, 215, 0]
+}
+INT_RGB_MAP = {COLOR_INT_MAP[k]: v for k, v in COLOR_RGB_MAP.items()}
 
 
 class Cube:
@@ -15,8 +25,8 @@ class Cube:
             for side, v in zip(self._sides, INT_COLOR_MAP.keys()):
                 side *= v
         else:
-            self._sides = [i for i in range(6*n*n)]
-            self._sides = np.reshape(self._sides, (6,n,n))
+            self._sides = [i for i in range(6 * n * n)]
+            self._sides = np.reshape(self._sides, (6, n, n))
 
     def __str__(self):
         return_str = ""
@@ -59,6 +69,9 @@ class Cube:
     def sides(self):
         return self._sides
 
+    def to_img(self, block_size=64):
+        raise NotImplementedError()
+
     def move(self, axis, idx, direction):
         assert idx < self.n
         assert axis in [0, 1, 2]
@@ -90,30 +103,28 @@ class Cube:
             self.sides[:, idx, :] = self.sides[rot_indexer, idx, :]
             if idx == 0:
                 self.sides[0, :, :] = np.rot90(self.sides[0, :, :], direction)
-            if idx == self.n:
+            if idx == self.n - 1:
                 self.sides[5, :, :] = np.rot90(self.sides[5, :, :], -direction)
 
         if axis == 1:
-            self.sides[1, :, :] = np.rot90(self.sides[1, :, :])
-            self.sides[3, :, :] = np.rot90(self.sides[3, :, :], 3)
-            self.sides[0, :, :] = np.flip(self.sides[0, :, :], 0)
+            idx = self.n - idx - 1
+            self.sides[1, :, :] = np.rot90(self.sides[1, :, :], -1)
+            self.sides[3, :, :] = np.rot90(self.sides[3, :, :], 1)
+            self.sides[5, :, :] = np.rot90(self.sides[5, :, :], 2)
             self.sides[:, idx, :] = self.sides[rot_indexer, idx, :]
-            self.sides[0, :, :] = np.flip(self.sides[0, :, :], 0)
-            self.sides[1, :, :] = np.rot90(self.sides[1, :, :], 3)
-            self.sides[3, :, :] = np.rot90(self.sides[3, :, :])
-            if idx == 0:
+            self.sides[1, :, :] = np.rot90(self.sides[1, :, :], 1)
+            self.sides[3, :, :] = np.rot90(self.sides[3, :, :], -1)
+            self.sides[5, :, :] = np.rot90(self.sides[5, :, :], -2)
+
+            if idx == self.n - 1:
                 self.sides[2, :, :] = np.rot90(self.sides[2, :, :], direction)
-            if idx == self.n:
+            if idx == 0:
                 self.sides[4, :, :] = np.rot90(self.sides[4, :, :], -direction)
 
         if axis == 2:
+            idx = self.n - idx - 1
             self.sides[:, :, idx] = self.sides[rot_indexer, :, idx]
-            if idx == 0:
+            if idx == self.n - 1:
                 self.sides[3, :, :] = np.rot90(self.sides[2, :, :], direction)
-            if idx == self.n:
+            if idx == 0:
                 self.sides[1, :, :] = np.rot90(self.sides[4, :, :], -direction)
-
-
-    def _row_move(self, idx, dir):
-        assert idx < self.n
-        assert dir in [-1, 1]
