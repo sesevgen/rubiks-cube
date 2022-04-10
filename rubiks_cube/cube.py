@@ -5,7 +5,14 @@ from PIL import Image
 
 # import torch - for later Tensor support
 
-INT_COLOR_MAP = {0: "w", 1: "r", 2: "g", 3: "b", 4: "y", 5: "o"}
+INT_COLOR_MAP = {
+    0: "w",
+    1: "r",
+    2: "g",
+    3: "b",
+    4: "y",
+    5: "o"}
+
 COLOR_INT_MAP = {v: k for k, v in INT_COLOR_MAP.items()}
 COLOR_RGB_MAP = {
     'w': [255, 255, 255],
@@ -13,7 +20,7 @@ COLOR_RGB_MAP = {
     'g': [0, 255, 0],
     'b': [0, 0, 255],
     'y': [255, 255, 0],
-    'o': [255, 0, 255]
+    'o': [255, 168, 0]
 }
 INT_RGB_MAP = {COLOR_INT_MAP[k]: v for k, v in COLOR_RGB_MAP.items()}
 
@@ -30,12 +37,12 @@ class Cube:
             raise RuntimeError("At least n or init_state needs to be specified.")
 
         if init_state is not None:
-            if (
-                    len(init_state.shape) == 3 or
-                    init_state.shape[0] != 6 or
-                    init_state.shape[1] != init_state.shape[2] or
-                    (n is not None and n != init_state.shape[1])):
-                raise ValueError(f"init_state must be of shape (6,n,n) but found {init_state.shape}")
+            # if (
+            #         len(init_state.shape) == 3 or
+            #         init_state.shape[0] != 6 or
+            #         init_state.shape[1] != init_state.shape[2] or
+            #         (n is not None and n != init_state.shape[1])):
+            #     raise ValueError(f"init_state must be of shape (6,n,n) but found {init_state.shape}")
             self._sides = init_state
             self._n = init_state.shape[1]
 
@@ -257,11 +264,13 @@ class Cube:
 
         if axis == 2:
             idx = self.n - idx - 1
+            self.sides[4, :, :] = np.rot90(self.sides[4, :, :], 2)
             self.sides[:, :, idx] = self.sides[rot_indexer, :, idx]
+            self.sides[4, :, :] = np.rot90(self.sides[4, :, :], -2)
             if idx == self.n - 1:
-                self.sides[3, :, :] = np.rot90(self.sides[2, :, :], direction)
+                self.sides[3, :, :] = np.rot90(self.sides[3, :, :], direction)
             if idx == 0:
-                self.sides[1, :, :] = np.rot90(self.sides[4, :, :], -direction)
+                self.sides[1, :, :] = np.rot90(self.sides[1, :, :], -direction)
 
     def reset(self):
         self._sides = copy.deepcopy(self.init_state)
