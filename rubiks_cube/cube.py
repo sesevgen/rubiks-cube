@@ -274,3 +274,29 @@ class Cube:
 
     def reset(self):
         self._sides = copy.deepcopy(self.init_state)
+
+
+def swap_state_colors(cube_state):
+    """
+    Data augmentation ?
+    Every color can be swapped with every other color
+
+    There's probably a better way to handle 'color symmetry'
+    but brute forcing it this way might work initially?
+    """
+    raise NotImplementedError
+
+
+def rotate_axis(cube_state):
+    """
+    Data augmentation ?
+
+    Rotating the reference frame is valid.
+    There might be a better way to handle states that are
+    the same if cube reference frame is rotated.
+
+    Can switch which face is '2' (the user facing side)
+    Can also then rotate the cube 90, 180 or 270 degrees.
+
+    """
+    raise NotImplementedError
