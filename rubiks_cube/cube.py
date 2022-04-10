@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import copy
 from PIL import Image
 
@@ -12,23 +13,48 @@ COLOR_RGB_MAP = {
     'g': [0, 255, 0],
     'b': [0, 0, 255],
     'y': [255, 255, 0],
-    'o': [255, 215, 0]
+    'o': [255, 0, 255]
 }
 INT_RGB_MAP = {COLOR_INT_MAP[k]: v for k, v in COLOR_RGB_MAP.items()}
 
 
 class Cube:
-    def __init__(self, n=3, debug=False):
-        self._n = n
-        if not debug:
-            self._sides = np.ones((6, self.n, self.n), dtype=int)
-            for side, v in zip(self._sides, INT_COLOR_MAP.keys()):
-                side *= v
+    """
+    #TODO: Is a 'Face' class useful here?
+
+    """
+
+    def __init__(self, n: int = None, debug: bool = False, init_state: np.ndarray = None):
+
+        if n is None and init_state is None:
+            raise RuntimeError("At least n or init_state needs to be specified.")
+
+        if init_state is not None:
+            if (
+                    len(init_state.shape) == 3 or
+                    init_state.shape[0] != 6 or
+                    init_state.shape[1] != init_state.shape[2] or
+                    (n is not None and n != init_state.shape[1])):
+                raise ValueError(f"init_state must be of shape (6,n,n) but found {init_state.shape}")
+            self._sides = init_state
+            self._n = init_state.shape[1]
+
         else:
-            self._sides = [i for i in range(6 * n * n)]
+            self._n = n
+            if not debug:
+                self._sides = np.ones((6, self.n, self.n), dtype=int)
+                for side, v in zip(self._sides, INT_COLOR_MAP.keys()):
+                    side *= v
+            else:
+                self._sides = [i for i in range(6 * n * n)]
             self._sides = np.reshape(self._sides, (6, n, n))
 
+        self.init_state = copy.deepcopy(self._sides)
+
     def __str__(self):
+        """
+        Dumb implementation, but works for now.
+        """
         return_str = ""
         filler = "   "
         for i in range(self.n):
@@ -69,10 +95,118 @@ class Cube:
     def sides(self):
         return self._sides
 
-    def to_img(self, block_size=64):
-        raise NotImplementedError()
+    def to_img(self, block_size=64, border_size=16):
+        """
+        Dumb implementation - raster line by line like the str method.
+
+        """
+        img = []
+        # Top n lines
+        for _ in range(border_size):
+            line = []
+            for _ in range(border_size):
+                line.append([0, 0, 0])
+            for _ in range((border_size + block_size) * 4 * self.n):
+                line.append([0, 0, 0])
+            img.append(line)
+
+        for i in range(self.n):
+            for _ in range(block_size):
+                line = []
+                for _ in range(border_size):
+                    line.append([0, 0, 0])
+
+                for _ in range(self.n):
+                    for _ in range(block_size + border_size):
+                        line.append([0, 0, 0])
+                for j in range(self.n):
+                    for _ in range(block_size):
+                        line.append(INT_RGB_MAP[self.sides[0, i, j]])
+                    for _ in range(border_size):
+                        line.append([0, 0, 0])
+                for _ in range(2 * self.n):
+                    for _ in range(block_size + border_size):
+                        line.append([0, 0, 0])
+                img.append(line)
+
+            for _ in range(border_size):
+                line = []
+                for _ in range(border_size):
+                    line.append([0, 0, 0])
+                for _ in range((border_size + block_size) * 4 * self.n):
+                    line.append([0, 0, 0])
+                img.append(line)
+
+        for i in range(self.n):
+            for _ in range(block_size):
+                line = []
+                for _ in range(border_size):
+                    line.append([0, 0, 0])
+
+                for side in range(1, 5):
+                    for j in range(self.n):
+                        for _ in range(block_size):
+                            line.append(INT_RGB_MAP[self.sides[side, i, j]])
+                        for _ in range(border_size):
+                            line.append([0, 0, 0])
+                img.append(line)
+
+            for _ in range(border_size):
+                line = []
+                for _ in range(border_size):
+                    line.append([0, 0, 0])
+
+                for _ in range((border_size + block_size) * 4 * self.n):
+                    line.append([0, 0, 0])
+                img.append(line)
+
+        for i in range(self.n):
+            for _ in range(block_size):
+                line = []
+                for _ in range(border_size):
+                    line.append([0, 0, 0])
+
+                for _ in range(self.n):
+                    for _ in range(block_size + border_size):
+                        line.append([0, 0, 0])
+                for j in range(self.n):
+                    for _ in range(block_size):
+                        line.append(INT_RGB_MAP[self.sides[5, i, j]])
+                    for _ in range(border_size):
+                        line.append([0, 0, 0])
+                for _ in range(2 * self.n):
+                    for _ in range(block_size + border_size):
+                        line.append([0, 0, 0])
+                img.append(line)
+
+            for _ in range(border_size):
+                line = []
+                for _ in range(border_size):
+                    line.append([0, 0, 0])
+                for _ in range((border_size + block_size) * 4 * self.n):
+                    line.append([0, 0, 0])
+                img.append(line)
+
+        return np.array(img, dtype=np.uint8)
+
+    def make_random_moves(self, N):
+        for _ in range(N):
+            axis = random.randint(0, 2)
+            direction = random.choice([-1, 1])
+            idx = random.randint(0, self.n - 1)
+
+            self.move(axis, idx, direction)
 
     def move(self, axis, idx, direction):
+        """
+        Probably an easier way exists by first rotating to a common representation
+        based on Axis.
+
+        But, do the dumb way that works first and double-check with real cube.
+
+        Then can use this as a test for a smarter implementation.
+
+        """
         assert idx < self.n
         assert axis in [0, 1, 2]
         assert direction in [-1, 1]
@@ -128,3 +262,6 @@ class Cube:
                 self.sides[3, :, :] = np.rot90(self.sides[2, :, :], direction)
             if idx == 0:
                 self.sides[1, :, :] = np.rot90(self.sides[4, :, :], -direction)
+
+    def reset(self):
+        self._sides = copy.deepcopy(self.init_state)
