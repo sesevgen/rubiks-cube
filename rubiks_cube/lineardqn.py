@@ -10,9 +10,7 @@ class LinearDQN(nn.Module):
             hidden_layer_sizes: list[int],
             output_dim: int,
             activations: str = "ReLU",
-
             device: str = None,
-
     ):
 
         super(LinearDQN, self).__init__()
@@ -29,12 +27,6 @@ class LinearDQN(nn.Module):
             layers.append(nn.Linear(i, o))
             layers.append(getattr(nn, activations))
         self.layers = nn.Sequential(*layers[:-1])
-
-        for k, v in optim_config.items():
-            self.optimizer = getattr(optim, k)(self.parameters(), **v)
-
-        for k, v in loss_config.items():
-            self.loss = getattr(nn, k)(**v)
 
         if device is None:
             self.device = torch.device('cuda:0' if T.cuda.is_available() else 'cpu')
