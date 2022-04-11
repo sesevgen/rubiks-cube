@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import copy
+from sympy.utilities.iterables import multiset_permutations
 from PIL import Image
 
 # import torch - for later Tensor support
@@ -276,27 +277,54 @@ class Cube:
         self._sides = copy.deepcopy(self.init_state)
 
 
-def swap_state_colors(cube_state):
+def permutate_state_colors(cube_state):
     """
     Data augmentation ?
     Every color can be swapped with every other color
 
     There's probably a better way to handle 'color symmetry'
     but brute forcing it this way might work initially?
+
+    Since each color can be substituted for any other color,
+    for a given cube configuration, we can populate it 6! == 720
+    different ways.
+
+    This function returns all 720 combinations possible for a
+    given configuration
     """
-    raise NotImplementedError
+    all_cube_states = np.zeros((720,) + cube_state.shape)
+    source_map = np.array([i for i in range(6)])
+    for i, target_map in enumerate(multiset_permutations(source_map)):
+        all_cube_states[i, :, :, :] = \
+            np.select([cube_state == a for a in source_map], target_map)
+
+    return all_cube_states
 
 
-def rotate_axis(cube_state):
+def rotate_right(cube_state):
     """
     Data augmentation ?
 
     Rotating the reference frame is valid.
-    There might be a better way to handle states that are
-    the same if cube reference frame is rotated.
+    There might be a better way to handle rotational 'symmetry'
 
-    Can switch which face is '2' (the user facing side)
     Can also then rotate the cube 90, 180 or 270 degrees.
 
     """
+    rot_indexer = np.array([1, 5, 2, 0, 4, 3])
+    return np.rot90(cube_state[rot_indexer], axes=(1, 2), k=-1)
+
+
+def flip_cube_left(cube_state):
+    """
+    Data augmentation?
+
+    Flipping the cube such that a new face becomes '0'
+    gives rise to new valid states
+
+    """
+    raise NotImplementedError
+
+
+def flip_cube_down(cube_state):
     raise NotImplementedError
