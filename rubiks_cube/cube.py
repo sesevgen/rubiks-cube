@@ -59,6 +59,10 @@ class Cube:
 
         self.init_state = copy.deepcopy(self._sides)
 
+    @@property
+    def action_space(self):
+        return self.n, 3, 2
+
     def __str__(self):
         """
         Dumb implementation, but works for now.
@@ -197,15 +201,15 @@ class Cube:
 
         return np.array(img, dtype=np.uint8)
 
-    def make_random_moves(self, N):
-        for _ in range(N):
+    def make_random_moves(self, n):
+        for _ in range(n):
             axis = random.randint(0, 2)
             direction = random.choice([-1, 1])
             idx = random.randint(0, self.n - 1)
 
             self.move(axis, idx, direction)
 
-    def move(self, axis, idx, direction):
+    def move(self, axis, depth, direction):
         """
         Probably an easier way exists by first rotating to a common representation
         based on Axis.
@@ -215,9 +219,11 @@ class Cube:
         Then can use this as a test for a smarter implementation.
 
         """
-        assert idx < self.n
+        assert depth < self.n
         assert axis in [0, 1, 2]
-        assert direction in [-1, 1]
+        assert direction in [0, 1]
+        if direction == 0:
+            direction = -1
 
         axis_face_map = {0: 0, 1: 2, 2: 3}
 
@@ -242,35 +248,35 @@ class Cube:
                 rot_indexer = [4, 1, 0, 3, 5, 2]
 
         if axis == 0:
-            self.sides[:, idx, :] = self.sides[rot_indexer, idx, :]
-            if idx == 0:
+            self.sides[:, depth, :] = self.sides[rot_indexer, depth, :]
+            if depth == 0:
                 self.sides[0, :, :] = np.rot90(self.sides[0, :, :], direction)
-            if idx == self.n - 1:
+            if depth == self.n - 1:
                 self.sides[5, :, :] = np.rot90(self.sides[5, :, :], -direction)
 
         if axis == 1:
-            idx = self.n - idx - 1
+            depth = self.n - depth - 1
             self.sides[1, :, :] = np.rot90(self.sides[1, :, :], -1)
             self.sides[3, :, :] = np.rot90(self.sides[3, :, :], 1)
             self.sides[5, :, :] = np.rot90(self.sides[5, :, :], 2)
-            self.sides[:, idx, :] = self.sides[rot_indexer, idx, :]
+            self.sides[:, depth, :] = self.sides[rot_indexer, depth, :]
             self.sides[1, :, :] = np.rot90(self.sides[1, :, :], 1)
             self.sides[3, :, :] = np.rot90(self.sides[3, :, :], -1)
             self.sides[5, :, :] = np.rot90(self.sides[5, :, :], -2)
 
-            if idx == self.n - 1:
+            if depth == self.n - 1:
                 self.sides[2, :, :] = np.rot90(self.sides[2, :, :], direction)
-            if idx == 0:
+            if depth == 0:
                 self.sides[4, :, :] = np.rot90(self.sides[4, :, :], -direction)
 
         if axis == 2:
-            idx = self.n - idx - 1
+            depth = self.n - depth - 1
             self.sides[4, :, :] = np.rot90(self.sides[4, :, :], 2)
-            self.sides[:, :, idx] = self.sides[rot_indexer, :, idx]
+            self.sides[:, :, depth] = self.sides[rot_indexer, :, depth]
             self.sides[4, :, :] = np.rot90(self.sides[4, :, :], -2)
-            if idx == self.n - 1:
+            if depth == self.n - 1:
                 self.sides[3, :, :] = np.rot90(self.sides[3, :, :], direction)
-            if idx == 0:
+            if depth == 0:
                 self.sides[1, :, :] = np.rot90(self.sides[1, :, :], -direction)
 
     def reset(self):

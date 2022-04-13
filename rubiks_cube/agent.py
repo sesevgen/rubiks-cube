@@ -43,8 +43,14 @@ class Agent:
         if np.random.random() > self.epsilon:
             est_rewards = self.model(obs)
             optimal_action = torch.argmax(est_rewards)
+            return optimal_action
+
         else:
-            raise NotImplementedError
+            if isinstance(self.output_dim, int):
+                return np.random.randint(0, self.output_dim)
+            else:
+                return tuple([np.random.randint(0, a) for a in self.output_dim])
+
 
 
 
