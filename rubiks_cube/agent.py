@@ -6,53 +6,34 @@ import numpy as np
 
 from rubiks_cube.lineardqn import LinearDQN
 
-operator_dict = {
-    "-": operator.sub,
-    "*": operator.mul,
-}
-
 
 class Agent:
     def __init__(
             self,
-            input_dim: int | tuple(int),
-            output_dim: int | tuple(int),
-            model: dict | nn.Module,
-            epsilon=1,
-            eps_decay_fcn='-',
-            eps_decay_amt=1e-5,
+            model: LinearDQN,
     ):
 
-        self.input_dim = input_dim
-        self.output_dim = output_dim
+        self.model = model
 
-        if isinstance(model, dict):
-            model["input_dim"] = input_dim
-            model["output_dim"] = output_dim
-            self.model = LinearDQN(**model)
+    def choose_action(self, obs, eps):
+        if np.random.random() > eps:
+            obs_oh = self.model.cube_state_to_onehot(obs)
+            est_rewards = self.model(obs_oh.to(self.model.device))
+            action = torch.argmax(est_rewards)
         else:
-            assert model.input_dim == input_dim
-            assert model.output_dim == output_dim
-            self.model = model
+            action = np.random.randint(0, self.model.output_dim)
 
-        self.epsilon = epsilon
-        self.eps_decay_fcn = operator_dict[eps_decay_fcn]
-        self.eps_decay_amt = eps_decay_amt
+        return self.model.int_to_action(action)
 
-    def choose_action(self, obs):
-        if np.random.random() > self.epsilon:
-            est_rewards = self.model(obs)
-            optimal_action = torch.argmax(est_rewards)
-            return optimal_action
-
-        else:
-            if isinstance(self.output_dim, int):
-                return np.random.randint(0, self.output_dim)
+    def attempt_solution(self, cube, max_steps=100, eps=0.0):
+        self.model.eval()
+        with torch.no_grad():
+            steps = 0
+            while (steps < max_steps) and (not cube.solved):
+                action = self.choose_action(cube.sides, eps)
+                cube.move(*action)
+                steps += 1
+            if cube.solved:
+                print(f"Cube solved in {steps} steps!")
             else:
-                return tuple([np.random.randint(0, a) for a in self.output_dim])
-
-
-
-
-
-
+                print(f"Failed to solve cube in {steps} steps.")

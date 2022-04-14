@@ -59,7 +59,7 @@ class Cube:
 
         self.init_state = copy.deepcopy(self._sides)
 
-    @@property
+    @property
     def action_space(self):
         return self.n, 3, 2
 
@@ -98,6 +98,13 @@ class Cube:
 
     def __repr__(self):
         return str(self)
+
+    @property
+    def solved(self):
+        for s in self.sides:
+            if np.any(s[0, 0] != s):
+                return False
+        return True
 
     @property
     def n(self):
@@ -203,13 +210,13 @@ class Cube:
 
     def make_random_moves(self, n):
         for _ in range(n):
+            depth = random.randint(0, self.n - 1)
             axis = random.randint(0, 2)
-            direction = random.choice([-1, 1])
-            idx = random.randint(0, self.n - 1)
+            direction = random.choice([0, 1])
 
-            self.move(axis, idx, direction)
+            self.move(depth, axis, direction)
 
-    def move(self, axis, depth, direction):
+    def move(self, depth, axis, direction):
         """
         Probably an easier way exists by first rotating to a common representation
         based on Axis.
@@ -283,7 +290,7 @@ class Cube:
         self._sides = copy.deepcopy(self.init_state)
 
 
-def permutate_state_colors(cube_state):
+def permute_state_colors(cube_state):
     """
     Data augmentation ?
     Every color can be swapped with every other color
