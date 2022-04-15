@@ -1,6 +1,8 @@
 import numpy as np
+import itertools
 import random
 import copy
+
 from sympy.utilities.iterables import multiset_permutations
 from PIL import Image
 
@@ -45,23 +47,35 @@ class Cube:
             #         (n is not None and n != init_state.shape[1])):
             #     raise ValueError(f"init_state must be of shape (6,n,n) but found {init_state.shape}")
             self._sides = init_state
-            self._n = init_state.shape[1]
 
         else:
-            self._n = n
             if not debug:
-                self._sides = np.ones((6, self.n, self.n), dtype=int)
-                for side, v in zip(self._sides, INT_COLOR_MAP.keys()):
+                self._sides = np.ones((6, n, n), dtype=int)
+                for side, v in zip(self.sides, INT_COLOR_MAP.keys()):
                     side *= v
             else:
-                self._sides = [i for i in range(6 * n * n)]
-            self._sides = np.reshape(self._sides, (6, n, n))
+                self.sides = [i for i in range(6 * n * n)]
+            self.sides = np.reshape(self._sides, (6, n, n))
 
         self.init_state = copy.deepcopy(self._sides)
 
     @property
+    def n(self):
+        return self.sides.shape[1]
+
+    @property
     def action_space(self):
         return self.n, 3, 2
+
+    @property
+    def sides(self):
+        return self._sides
+
+    @sides.setter
+    def sides(self, sides):
+        if not np.all(np.array_equal(self.sides.shape, sides.shape)):
+            raise ValueError(f"This cube has sides of format {self.sides.shape}, but trying to assign {sides.shape}")
+        self._sides = sides
 
     def __str__(self):
         """
@@ -108,11 +122,7 @@ class Cube:
 
     @property
     def n(self):
-        return self._n
-
-    @property
-    def sides(self):
-        return self._sides
+        return self.sides.shape[1]
 
     def to_img(self, block_size=64, border_size=16):
         """
@@ -289,8 +299,12 @@ class Cube:
     def reset(self):
         self._sides = copy.deepcopy(self.init_state)
 
+    @sides.setter
+    def sides(self, value):
+        self._sides = value
 
-def permute_state_colors(cube_state):
+
+def permute_state_colors(cube_state, idx: int | None = None):
     """
     Data augmentation ?
     Every color can be swapped with every other color
@@ -307,11 +321,15 @@ def permute_state_colors(cube_state):
     """
     all_cube_states = np.zeros((720,) + cube_state.shape)
     source_map = np.array([i for i in range(6)])
-    for i, target_map in enumerate(multiset_permutations(source_map)):
-        all_cube_states[i, :, :, :] = \
-            np.select([cube_state == a for a in source_map], target_map)
+    if isinstance(idx, int):
+        target_map = next(itertools.islice(multiset_permutations(source_map), idx, None))
+        return np.select([cube_state == a for a in source_map], target_map)
 
-    return all_cube_states
+    if idx is None:
+        for i, target_map in enumerate(multiset_permutations(source_map)):
+            all_cube_states[i, :, :, :] = \
+                np.select([cube_state == a for a in source_map], target_map)
+        return all_cube_states
 
 
 def rotate_right(cube_state):

@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 
-class LinearDQN(nn.Module):
+class FcDQN(nn.Module):
     def __init__(
             self,
             n: int,
@@ -12,9 +12,9 @@ class LinearDQN(nn.Module):
             device: str = None,
     ):
 
-        super(LinearDQN, self).__init__()
+        super(FcDQN, self).__init__()
 
-        self.n = n
+        self._n = n
         self.input_dim = 6 * n * n * 6
         self.output_dim = n * 3 * 2
 
@@ -37,6 +37,10 @@ class LinearDQN(nn.Module):
 
         self.to(self.device)
         print(self)
+
+    @property
+    def n(self):
+        return self._n
 
     def forward(self, x):
         return self.layers(x.float())
